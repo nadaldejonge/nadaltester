@@ -3,8 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <title>Mijn Codex HTML Demo</title>
+  <style>
+    button {
+      background-color: #007bff;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
   <h1>Welkom bij mijn Codex demo!</h1>
+  <button id="testButton">test</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
+  <script>
+    document.getElementById('testButton').addEventListener('click', function () {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    });
+  </script>
 </body>
 </html>
