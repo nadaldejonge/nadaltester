@@ -1,33 +1,146 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8">
-  <title>Mijn Codex HTML Demo</title>
-  <style>
-    button {
-      background-color: #007bff;
-      color: white;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 4px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Foto naar schilderij</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 40px;
+    background-color: #f6f6f6;
+  }
+  h1 {
+    text-align: center;
+  }
+  #controls {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 400px;
+  }
+  label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  input[type=range] {
+    width: 200px;
+  }
+  canvas {
+    margin-top: 20px;
+    border: 1px solid #ccc;
+    background-color: white;
+  }
+  #outputCanvas {
+    display: none;
+  }
+</style>
 </head>
 <body>
-  <h1>Welkom bij mijn Codex demo!</h1>
-  <button id="testButton">test</button>
+<h1>Foto naar schilderij</h1>
+<div id="uploader">
+  <input type="file" id="fileInput" accept="image/*">
+</div>
+<div id="controls" style="display:none;">
+  <label>Brush size: <input type="range" id="brush" min="2" max="20" value="8"></label>
+  <label>Detail level: <input type="range" id="detail" min="2" max="50" value="20"></label>
+  <label>Kleurintensiteit: <input type="range" id="intensity" min="0" max="200" value="100"></label>
+  <button id="applyBtn">Pas effect toe</button>
+</div>
+<canvas id="originalCanvas" style="display:none;"></canvas>
+<canvas id="outputCanvas"></canvas>
+<script>
+const fileInput = document.getElementById('fileInput');
+const controls = document.getElementById('controls');
+const brushInput = document.getElementById('brush');
+const detailInput = document.getElementById('detail');
+const intensityInput = document.getElementById('intensity');
+const originalCanvas = document.getElementById('originalCanvas');
+const outputCanvas = document.getElementById('outputCanvas');
+const applyBtn = document.getElementById('applyBtn');
+const octx = originalCanvas.getContext('2d');
+const ctx = outputCanvas.getContext('2d');
 
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
-  <script>
-    document.getElementById('testButton').addEventListener('click', function () {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
-    });
-  </script>
+let imgWidth = 0;
+let imgHeight = 0;
+
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const img = new Image();
+  img.onload = () => {
+    imgWidth = img.width;
+    imgHeight = img.height;
+    originalCanvas.width = imgWidth;
+    originalCanvas.height = imgHeight;
+    outputCanvas.width = imgWidth;
+    outputCanvas.height = imgHeight;
+    octx.drawImage(img, 0, 0);
+    ctx.drawImage(img, 0, 0);
+    controls.style.display = 'flex';
+    outputCanvas.style.display = 'block';
+  };
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    img.src = evt.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+applyBtn.addEventListener('click', () => {
+  const brush = parseInt(brushInput.value, 10);
+  const detail = parseInt(detailInput.value, 10);
+  const intensity = parseInt(intensityInput.value, 10) / 100;
+  const imageData = octx.getImageData(0, 0, imgWidth, imgHeight);
+  const painted = paintify(imageData, brush, detail, intensity);
+  ctx.putImageData(painted, 0, 0);
+});
+
+function paintify(imageData, brush, detail, intensity) {
+  const width = imageData.width;
+  const height = imageData.height;
+  const src = imageData.data;
+  const dst = new Uint8ClampedArray(src);
+  for (let y = 0; y < height; y += brush) {
+    for (let x = 0; x < width; x += brush) {
+      let r = 0, g = 0, b = 0, count = 0;
+      for (let dy = 0; dy < brush; dy++) {
+        for (let dx = 0; dx < brush; dx++) {
+          const yy = y + dy;
+          const xx = x + dx;
+          if (yy >= height || xx >= width) continue;
+          const idx = (yy * width + xx) * 4;
+          r += src[idx];
+          g += src[idx + 1];
+          b += src[idx + 2];
+          count++;
+        }
+      }
+      r = r / count;
+      g = g / count;
+      b = b / count;
+      r = Math.min(255, Math.pow(r / 255, 1) * 255 * intensity);
+      g = Math.min(255, Math.pow(g / 255, 1) * 255 * intensity);
+      b = Math.min(255, Math.pow(b / 255, 1) * 255 * intensity);
+      r = Math.round(r / detail) * detail;
+      g = Math.round(g / detail) * detail;
+      b = Math.round(b / detail) * detail;
+      for (let dy = 0; dy < brush; dy++) {
+        for (let dx = 0; dx < brush; dx++) {
+          const yy = y + dy;
+          const xx = x + dx;
+          if (yy >= height || xx >= width) continue;
+          const idx = (yy * width + xx) * 4;
+          dst[idx] = r;
+          dst[idx + 1] = g;
+          dst[idx + 2] = b;
+        }
+      }
+    }
+  }
+  return new ImageData(dst, width, height);
+}
+</script>
 </body>
 </html>
