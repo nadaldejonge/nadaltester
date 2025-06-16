@@ -1,33 +1,259 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8">
-  <title>Mijn Codex HTML Demo</title>
-  <style>
-    button {
-      background-color: #007bff;
-      color: white;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 4px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Foto naar schilderij</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f6f6f6;
+    margin: 40px;
+  }
+  .container {
+    max-width: 700px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  #dropZone {
+    border: 2px dashed #ccc;
+    padding: 40px;
+    background:#fff;
+    color:#666;
+    cursor:pointer;
+  }
+  #dropZone.hover {
+    border-color:#888;
+    color:#000;
+  }
+  #controls {
+    margin-top:20px;
+    display:none;
+    flex-direction:column;
+    gap:10px;
+    align-items:center;
+  }
+  label {
+    display:flex;
+    justify-content:space-between;
+    width:100%;
+    max-width:400px;
+  }
+  input[type=range] {
+    width:200px;
+  }
+  canvas {
+    margin-top:20px;
+    border:1px solid #ccc;
+    background:#fff;
+  }
+</style>
 </head>
 <body>
-  <h1>Welkom bij mijn Codex demo!</h1>
-  <button id="testButton">test</button>
+<div class="container">
+  <h1>Foto naar schilderij</h1>
+  <div id="dropZone">Sleep een afbeelding hierheen of klik om te kiezen</div>
+  <input type="file" id="fileInput" accept="image/*" style="display:none">
+  <div id="controls">
+    <label>Penseelgrootte: <input type="range" id="brush" min="2" max="20" value="8"></label>
+    <label>Detailgrootte: <input type="range" id="detail" min="2" max="50" value="20"></label>
+    <label>Kleurintensiteit: <input type="range" id="intensity" min="0" max="200" value="100"></label>
+    <label>Contrast: <input type="range" id="contrast" min="50" max="150" value="100"></label>
+    <label>Stijl:
+      <select id="style">
+        <option value="classic">Klassiek</option>
+        <option value="grayscale">Zwart-wit</option>
+        <option value="sepia">Sepia</option>
+        <option value="negative">Negatief</option>
+        <option value="impression">Impressionistisch</option>
+        <option value="watercolor">Aquarel</option>
+        <option value="popart">Popart</option>
+      </select>
+    </label>
+    <button id="applyBtn">Pas effect toe</button>
+  </div>
+  <canvas id="originalCanvas" style="display:none;"></canvas>
+  <canvas id="outputCanvas"></canvas>
+</div>
+<script>
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const controls = document.getElementById('controls');
+const brushInput = document.getElementById('brush');
+const detailInput = document.getElementById('detail');
+const intensityInput = document.getElementById('intensity');
+const contrastInput = document.getElementById('contrast');
+const styleSelect = document.getElementById('style');
+const originalCanvas = document.getElementById('originalCanvas');
+const outputCanvas = document.getElementById('outputCanvas');
+const applyBtn = document.getElementById('applyBtn');
+const octx = originalCanvas.getContext('2d');
+const ctx = outputCanvas.getContext('2d');
 
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
-  <script>
-    document.getElementById('testButton').addEventListener('click', function () {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
-    });
-  </script>
+let imgWidth = 0;
+let imgHeight = 0;
+
+function handleFile(file) {
+  const img = new Image();
+  img.onload = () => {
+    imgWidth = img.width;
+    imgHeight = img.height;
+    originalCanvas.width = imgWidth;
+    originalCanvas.height = imgHeight;
+    outputCanvas.width = imgWidth;
+    outputCanvas.height = imgHeight;
+    octx.drawImage(img, 0, 0);
+    ctx.drawImage(img, 0, 0);
+    controls.style.display = 'flex';
+  };
+  const reader = new FileReader();
+  reader.onload = e => img.src = e.target.result;
+  reader.readAsDataURL(file);
+}
+
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) handleFile(file);
+});
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropZone.classList.add('hover');
+});
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('hover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('hover');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+
+applyBtn.addEventListener('click', () => {
+  const brush = parseInt(brushInput.value,10);
+  const detail = parseInt(detailInput.value,10);
+  const intensity = parseInt(intensityInput.value,10)/100;
+  const contrast = parseInt(contrastInput.value,10)/100;
+  const style = styleSelect.value;
+  let imgData = octx.getImageData(0,0,imgWidth,imgHeight);
+  let painted = paintify(imgData, brush, detail, intensity);
+  switch(style){
+    case 'grayscale': painted = toGrayscale(painted); break;
+    case 'sepia': painted = toSepia(painted); break;
+    case 'negative': painted = toNegative(painted); break;
+    case 'impression': painted = toImpression(painted); break;
+    case 'watercolor': painted = toWatercolor(painted); break;
+    case 'popart': painted = toPopArt(painted); break;
+  }
+  painted = adjustContrast(painted, contrast);
+  ctx.putImageData(painted,0,0);
+});
+
+function paintify(imageData, brush, detail, intensity){
+  const w = imageData.width;
+  const h = imageData.height;
+  const src = imageData.data;
+  const dst = new Uint8ClampedArray(src);
+  for(let y=0;y<h;y+=brush){
+    for(let x=0;x<w;x+=brush){
+      let r=0,g=0,b=0,c=0;
+      for(let dy=0;dy<brush;dy++){
+        for(let dx=0;dx<brush;dx++){
+          const yy=y+dy,xx=x+dx;
+          if(yy>=h||xx>=w) continue;
+          const idx=(yy*w+xx)*4;
+          r+=src[idx];g+=src[idx+1];b+=src[idx+2];
+          c++;}
+      }
+      r=r/c;g=g/c;b=b/c;
+      r=Math.min(255, r*intensity);
+      g=Math.min(255, g*intensity);
+      b=Math.min(255, b*intensity);
+      r=Math.round(r/detail)*detail;
+      g=Math.round(g/detail)*detail;
+      b=Math.round(b/detail)*detail;
+      for(let dy=0;dy<brush;dy++){
+        for(let dx=0;dx<brush;dx++){
+          const yy=y+dy,xx=x+dx;
+          if(yy>=h||xx>=w) continue;
+          const idx=(yy*w+xx)*4;
+          dst[idx]=r;dst[idx+1]=g;dst[idx+2]=b;
+        }
+      }
+    }
+  }
+  return new ImageData(dst,w,h);
+}
+
+function toGrayscale(img){
+  const d=img.data;
+  for(let i=0;i<d.length;i+=4){
+    const v=d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114;
+    d[i]=d[i+1]=d[i+2]=v;
+  }
+  return img;
+}
+function toSepia(img){
+  const d=img.data;
+  for(let i=0;i<d.length;i+=4){
+    const r=d[i],g=d[i+1],b=d[i+2];
+    d[i]=Math.min(255,r*0.393+g*0.769+b*0.189);
+    d[i+1]=Math.min(255,r*0.349+g*0.686+b*0.168);
+    d[i+2]=Math.min(255,r*0.272+g*0.534+b*0.131);
+  }
+  return img;
+}
+function toNegative(img){
+  const d=img.data;
+  for(let i=0;i<d.length;i+=4){
+    d[i]=255-d[i];d[i+1]=255-d[i+1];d[i+2]=255-d[i+2];
+  }
+  return img;
+}
+function adjustContrast(img,f){
+  const d=img.data;
+  for(let i=0;i<d.length;i+=4){
+    d[i]=truncate((d[i]-128)*f+128);
+    d[i+1]=truncate((d[i+1]-128)*f+128);
+    d[i+2]=truncate((d[i+2]-128)*f+128);
+  }
+  return img;
+}
+function adjustSaturation(img,f){
+  const d=img.data;
+  for(let i=0;i<d.length;i+=4){
+    const gray=d[i]*0.3+d[i+1]*0.59+d[i+2]*0.11;
+    d[i]=truncate(gray+(d[i]-gray)*f);
+    d[i+1]=truncate(gray+(d[i+1]-gray)*f);
+    d[i+2]=truncate(gray+(d[i+2]-gray)*f);
+  }
+  return img;
+}
+function adjustBrightness(img,f){
+  const d=img.data;
+  for(let i=0;i<d.length;i+=4){
+    d[i]=truncate(d[i]*f);
+    d[i+1]=truncate(d[i+1]*f);
+    d[i+2]=truncate(d[i+2]*f);
+  }
+  return img;
+}
+function toImpression(img){
+  adjustSaturation(img,1.3);
+  adjustBrightness(img,1.1);
+  return img;
+}
+function toWatercolor(img){
+  adjustSaturation(img,0.7);
+  adjustBrightness(img,1.2);
+  return img;
+}
+function toPopArt(img){
+  adjustSaturation(img,1.8);
+  adjustContrast(img,1.5);
+  return img;
+}
+function truncate(v){
+  return Math.min(255,Math.max(0,v));
+}
+</script>
 </body>
 </html>
