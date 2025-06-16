@@ -58,6 +58,8 @@
     <label>Detailgrootte: <input type="range" id="detail" min="2" max="50" value="20"></label>
     <label>Kleurintensiteit: <input type="range" id="intensity" min="0" max="200" value="100"></label>
     <label>Contrast: <input type="range" id="contrast" min="50" max="150" value="100"></label>
+    <label>Saturatie: <input type="range" id="saturation" min="50" max="150" value="100"></label>
+    <label>Helderheid: <input type="range" id="brightness" min="50" max="150" value="100"></label>
     <label>Stijl:
       <select id="style">
         <option value="classic">Klassiek</option>
@@ -70,6 +72,13 @@
         <option value="cubism">Kubisme</option>
         <option value="sketch">Schets</option>
         <option value="pixel">Pixelart</option>
+        <option value="oil">Olieverf</option>
+        <option value="pointillism">Pointillisme</option>
+        <option value="pastel">Pastel</option>
+        <option value="expression">Expressionisme</option>
+        <option value="mosaic">Mozaïek</option>
+        <option value="cartoon">Cartoon</option>
+        <option value="pencil">Kleurpotlood</option>
       </select>
     </label>
     <button id="applyBtn">Pas effect toe</button>
@@ -85,6 +94,8 @@ const brushInput = document.getElementById('brush');
 const detailInput = document.getElementById('detail');
 const intensityInput = document.getElementById('intensity');
 const contrastInput = document.getElementById('contrast');
+const saturationInput = document.getElementById('saturation');
+const brightnessInput = document.getElementById('brightness');
 const styleSelect = document.getElementById('style');
 const originalCanvas = document.getElementById('originalCanvas');
 const outputCanvas = document.getElementById('outputCanvas');
@@ -135,6 +146,8 @@ applyBtn.addEventListener('click', () => {
   const detail = parseInt(detailInput.value,10);
   const intensity = parseInt(intensityInput.value,10)/100;
   const contrast = parseInt(contrastInput.value,10)/100;
+  const saturation = parseInt(saturationInput.value,10)/100;
+  const brightness = parseInt(brightnessInput.value,10)/100;
   const style = styleSelect.value;
   let imgData = octx.getImageData(0,0,imgWidth,imgHeight);
   let painted = paintify(imgData, brush, detail, intensity);
@@ -148,8 +161,17 @@ applyBtn.addEventListener('click', () => {
     case 'cubism': painted = toCubism(painted); break;
     case 'sketch': painted = toSketch(painted); break;
     case 'pixel': painted = toPixel(painted); break;
+    case 'oil': painted = toOil(painted); break;
+    case 'pointillism': painted = toPointillism(painted); break;
+    case 'pastel': painted = toPastel(painted); break;
+    case 'expression': painted = toExpression(painted); break;
+    case 'mosaic': painted = toMosaic(painted); break;
+    case 'cartoon': painted = toCartoon(painted); break;
+    case 'pencil': painted = toPencil(painted); break;
   }
   painted = adjustContrast(painted, contrast);
+  painted = adjustSaturation(painted, saturation);
+  painted = adjustBrightness(painted, brightness);
   ctx.putImageData(painted,0,0);
 });
 
@@ -269,6 +291,38 @@ function toSketch(img){
 }
 function toPixel(img){
   return paintify(img,10,64,1);
+}
+function toOil(img){
+  adjustSaturation(img,1.2);
+  adjustContrast(img,1.2);
+  return img;
+}
+function toPointillism(img){
+  return paintify(img,4,32,1);
+}
+function toPastel(img){
+  adjustSaturation(img,0.6);
+  adjustBrightness(img,1.2);
+  return img;
+}
+function toExpression(img){
+  adjustSaturation(img,1.6);
+  adjustContrast(img,1.4);
+  adjustBrightness(img,1.1);
+  return img;
+}
+function toMosaic(img){
+  return paintify(img,20,128,1);
+}
+function toCartoon(img){
+  toSketch(img);
+  adjustSaturation(img,1.8);
+  return img;
+}
+function toPencil(img){
+  toSketch(img);
+  adjustBrightness(img,1.2);
+  return img;
 }
 function truncate(v){
   return Math.min(255,Math.max(0,v));
