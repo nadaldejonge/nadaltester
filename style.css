@@ -14,6 +14,17 @@ h1 {
 }
 .upload {
   margin: 20px 0;
+  border: 2px dashed #ffa500;
+  padding: 40px;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.3s, transform 0.3s;
+}
+
+.upload.hover {
+  background: rgba(255,255,255,0.1);
+  transform: scale(1.05);
 }
 #controls {
   margin-bottom: 20px;
@@ -49,3 +60,4 @@ button:hover {
   max-width: 200px;
   margin-bottom: 5px;
 }
+

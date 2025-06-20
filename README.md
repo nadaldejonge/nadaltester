@@ -6,4 +6,4 @@ Open `index.html` in je browser om te beginnen.
 
 ## PDF foto-extractor
 
-Voor het extraheren van afbeeldingen uit een PDF kun je `pdf-extract.html` openen. Upload een PDF-bestand en selecteer welke pagina's je wilt downloaden als afbeelding.
+Voor het extraheren van afbeeldingen uit een PDF kun je `pdf-extract.html` openen. Sleep een PDF-bestand naar het venster of klik om een bestand te kiezen. Na het laden kun je per pagina aanvinken welke afbeeldingen je wilt downloaden.
