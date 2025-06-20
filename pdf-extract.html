@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<title>Lukasse Dakbedekkingen Foto Extractor</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>Lukasse Dakbedekkingen Foto Extractor</h1>
+<div class="upload">
+  <input type="file" id="pdf-upload" accept="application/pdf">
+</div>
+<div id="controls" style="display:none;">
+  <label><input type="checkbox" id="select-all"> Selecteer alle foto's</label>
+  <button id="download-btn">Download geselecteerde</button>
+</div>
+<div id="image-container" class="grid"></div>
+
+<script type="module" src="extract.js"></script>
+</body>
+</html>
